@@ -74,7 +74,7 @@ def SOR_2D_GPU(tensor_laplacian: torch.tensor, batch_size: int,device:str, omega
             prev_delta = delta  # Update previous delta for next iteration
 
             # Print iteration information
-            print("\r", f'Iteration: {n_iter}, Loss: {delta} Stable Count: {stable_count}', end="")
+            print("\r", f'Iteration: {n_iter}, Residual: {delta} Stable Count: {stable_count}', end="")
 
             # Update iteration count
             n_iter += 1
