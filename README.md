@@ -30,7 +30,7 @@ or if you are running Linux
     wget -qO- https://raw.githubusercontent.com/matteo-ronchetti/torch-radon/master/auto_install.py  | python -
 
 ### 3. Install openBOS
-Use PyPI: <https://pypi.python.org/pypi/openBOS>:
+Use PyPI: <https://pypi.org/project/openBOS-GPU>:
 
     pip install openBOS-GPU 
 
