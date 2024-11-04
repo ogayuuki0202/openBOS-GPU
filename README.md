@@ -36,7 +36,7 @@ Use PyPI: <https://pypi.org/project/openBOS-GPU>:
 
 Or compile from source
 
-Download the package from the Github: https://github.com/ogayuuki0202/openBOS/archive/refs/heads/main.zip
+Download the package from the Github: https://github.com/ogayuuki0202/openBOS-GPU/archive/refs/heads/main.zip
 or clone using git
 
     git clone https://github.com/ogayuuki0202/openBOS-GPU.git
