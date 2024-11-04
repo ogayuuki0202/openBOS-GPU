@@ -40,7 +40,7 @@ Download the package from the Github: https://github.com/ogayuuki0202/openBOS/ar
 or clone using git
 
     git clone https://github.com/ogayuuki0202/openBOS-GPU.git
-    cd openBOS_GPU
+    cd openBOS-GPU
     python setup.py install 
 
 ## Methods
