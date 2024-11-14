@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from tqdm.contrib import tenumerate
 
 def SOR_2D_GPU(tensor_laplacian: torch.tensor, batch_size: int,device:str, omega_SOR: float,e: float,tolerance:float =1e-24,max_stable_iters:int=1000000):
     """
@@ -34,7 +35,7 @@ def SOR_2D_GPU(tensor_laplacian: torch.tensor, batch_size: int,device:str, omega
     u_list = []  # List to store results for each batch
 
     # Iterate over each batch in the data loader
-    for batch_idx, batch in enumerate(tensor_laplacian_dataloader):
+    for batch_idx, batch in tenumerate(tensor_laplacian_dataloader):
         # Move the batch to the device
         slice_laplacian = batch.to(device)
         batch_size, Ly, Lz = slice_laplacian.size()
