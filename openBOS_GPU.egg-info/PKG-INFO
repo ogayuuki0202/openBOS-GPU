@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: openBOS-GPU
-Version: 0.0.1
+Version: 0.0.2
 Summary: the library of Background Oriented Schlieren
 Home-page: https://github.com/ogayuuki0202/openBOS-GPU
 Download-URL: https://github.com/ogayuuki0202/openBOS-GPU
@@ -59,17 +59,17 @@ or if you are running Linux
     wget -qO- https://raw.githubusercontent.com/matteo-ronchetti/torch-radon/master/auto_install.py  | python -
 
 ### 3. Install openBOS
-Use PyPI: <https://pypi.python.org/pypi/openBOS>:
+Use PyPI: <https://pypi.org/project/openBOS-GPU>:
 
     pip install openBOS-GPU 
 
 Or compile from source
 
-Download the package from the Github: https://github.com/ogayuuki0202/openBOS/archive/refs/heads/main.zip
+Download the package from the Github: https://github.com/ogayuuki0202/openBOS-GPU/archive/refs/heads/main.zip
 or clone using git
 
     git clone https://github.com/ogayuuki0202/openBOS-GPU.git
-    cd openBOS_GPU
+    cd openBOS-GPU
     python setup.py install 
 
 ## Methods
