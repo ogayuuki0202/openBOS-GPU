@@ -44,7 +44,7 @@ def SOR_2D_GPU(tensor_laplacian: torch.tensor, batch_size: int,device:str, omega
         delta = 1.0
         stable_count = 0  # Reset stable count for each batch
         prev_delta = float('inf')  # Initialize previous delta
-
+        n_iter=0
         # SOR Iterative Loop
         while delta > e and stable_count < max_stable_iters:
             # Save current state for convergence check

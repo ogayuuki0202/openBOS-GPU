@@ -4,7 +4,7 @@ import torch
 from .reconstruction_utils import ART_torch  
 from tqdm.contrib import tzip                              
 
-def ART(sinogram: np.ndarray, batch_size: int, device:str, eps: float,tolerance:float =1e-24,max_stable_iters:int=1000000):
+def ART_GPU(sinogram: np.ndarray, batch_size: int, device:str, eps: float,tolerance:float =1e-24,max_stable_iters:int=1000000):
     """
     Perform Algebraic Reconstruction Technique (ART) on a sinogram using GPU.
     
