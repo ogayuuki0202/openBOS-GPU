@@ -86,4 +86,4 @@ def SOR_2D_GPU(tensor_laplacian: torch.tensor, batch_size: int,device:str, omega
     # Concatenate results for all batches and return as a single tensor
     u_tensor = torch.cat(u_list, dim=0)
 
-    return np.array(u_tensor)
+    return np.array(u_tensor.cpu())

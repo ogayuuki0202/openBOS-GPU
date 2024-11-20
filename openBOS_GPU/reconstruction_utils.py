@@ -15,13 +15,13 @@ class ART_torch(nn.Module):
     sinogram (np.ndarray): The input sinogram with shape [N, Size, Angle].
     """
     
-    def __init__(self, sinogram : torch.tensor):
+    def __init__(self, sinogram : torch.tensor,reconstruction_angle : float):
         super(ART_torch, self).__init__()  # Call the superclass (nn.Module) initializer
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.sinogram = sinogram  # Input sinogram [N, Size, Angle]
         
         # Define the angles for the Radon transform
-        angles = np.linspace(0, np.pi, self.sinogram.shape[1], endpoint=False)
+        angles = np.linspace(0, reconstruction_angle, self.sinogram.shape[1], endpoint=False)
         
         # Initialize the Radon transform function with given parameters
         self.radon_func = Radon(
