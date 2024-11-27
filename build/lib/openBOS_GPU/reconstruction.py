@@ -2,7 +2,97 @@ import numpy as np
 from tqdm import tqdm
 import torch      
 from .reconstruction_utils import ART_torch  
-from tqdm.contrib import tzip                              
+from tqdm.contrib import tzip
+
+
+def abel_transform_GPU(angle: np.ndarray, center: float, winy0: int, winy1: int, winx0: int, winx1: int, device: str):
+    """
+    Perform the Abel transform to convert refractive angle values into density differences.
+
+    This function applies the Abel transform on a 2D array of refractive angles, adjusting the 
+    values for background movement, calculating the distances from the center axis, and integrating 
+    to derive density differences using the Gladstone-Dale constant. The calculation is done efficiently 
+    on the GPU if available, using PyTorch tensors.
+
+    Parameters
+    ----------
+    angle : np.ndarray
+        A 2D numpy array representing refractive angles (radians) for each pixel in the image.
+        
+    center : float
+        The y-axis index corresponding to the central axis of the transform, from which integration will proceed.
+        
+    winy0 : int
+        The starting y-axis index of the region used to calculate the background mean.
+        
+    winy1 : int
+        The ending y-axis index of the region used to calculate the background mean.
+        
+    winx0 : int
+        The starting x-axis index of the region used to calculate the background mean.
+        
+    winx1 : int
+        The ending x-axis index of the region used to calculate the background mean.
+        
+    device : str
+        The device ('cpu' or 'cuda') on which the computation should be performed.
+
+    Returns
+    -------
+    np.ndarray
+        A 2D array of refractive index differences derived from the Abel transform.
+        This represents the integrated density differences across the refractive angle image.
+        
+    Notes
+    -----
+    This function applies the Abel transform to a refractive angle image. The transformation involves:
+    1. Subtracting the mean background value in the defined region (to compensate for background movement).
+    2. Integrating the transformed angles along the radial distance, adjusted for axial symmetry.
+    
+    The function uses GPU acceleration if available for efficient computation on large images.
+
+    Example
+    -------
+    abel_transform_GPU(angle_image, center=500, winy0=0, winy1=100, winx0=0, winx1=100, device='cuda')
+    """
+    
+    # Step 1: Subtract the mean background value to compensate for background movement
+    angle = angle - np.mean(angle[winy0:winy1, winx0:winx1])
+    
+    # Step 2: Remove values below the center, as they are not needed in the Abel transform
+    angle = angle[0:center]
+    
+    # Step 3: Reverse the angle array so that the upper part corresponds to the central axis
+    angle = angle[::-1]
+
+    # Step 4: Convert the angle array to a PyTorch tensor on the specified device
+    angle_tensor = torch.tensor(angle, device=device)
+
+    # Step 5: Calculate the radial distance (η) for the integration, using PyTorch tensors
+    eta_tensor = torch.arange(0, angle.shape[0] + 1, device=device)
+
+    # Step 6: Create a tensor for r values (radial positions) up to the center
+    r_tensor = torch.arange(0, center, device=device)
+
+    # Step 7: Calculate the denominator A = √(η² - r²)
+    A_tensor = eta_tensor**2 - r_tensor**2
+
+    # Step 8: Compute the sliced tensor values of A (denominator of the Abel transform)
+    A_r = _compute_sliced_tensors(A=A_tensor, device=device)
+    
+    # Step 9: Take the square root of A_r to obtain √(η² - r²)
+    A_r = torch.sqrt(A_r)
+    A_r = A_r.T  # Transpose for proper broadcasting in the next step
+    
+    # Step 10: Compute the integrand B = angle / (π * √(η² - r²)), where angle is the refractive angle tensor
+    B_r = _compute_sliced_tensors_2D(angle_tensor,dim=0, device=device) / (A_r * np.pi)
+    
+    # Step 11: Perform the integration by summing over the radial axis (axis=0)
+    ans = B_r.sum(axis=0)
+    
+    return ans
+
+
 
 def ART_GPU(sinogram: np.ndarray, batch_size: int, device:str,reconstruction_angle : float, eps: float,tolerance:float =1e-24,max_stable_iters:int=1000000):
     """
@@ -111,3 +201,84 @@ def ART_GPU(sinogram: np.ndarray, batch_size: int, device:str,reconstruction_ang
 
     # Concatenate all processed batches along the batch dimension and return
     return torch.cat(processed_batches, dim=0)
+
+
+
+
+def _compute_sliced_tensors(A, device=None):
+    """
+    Compute slices of the tensor A for each index r in parallel, such that each slice corresponds to A[r:a].
+    This function is designed to run efficiently on both GPU and CPU.
+
+    Args:
+        A (torch.Tensor): Input 1D tensor from which slices are taken.
+        device (torch.device, optional): Device on which to perform the computation.
+                                         If None, the current device of A is used.
+
+    Returns:
+        list[torch.Tensor]: A list of tensors, where each tensor is the slice A[r:a] for r in range(len(A)).
+    """
+    # Use the device of A if no device is explicitly provided
+    if device is None:
+        device = A.device
+
+    # Ensure the input tensor is on the correct device
+    A = A.to(device)
+
+    # Get the length of A
+    a = A.size(0)
+
+    # Create indices for slicing
+    indices = torch.arange(a, device=device).unsqueeze(1)  # Column vector of r values
+    arange_matrix = torch.arange(a, device=device).unsqueeze(0)  # Row vector [0, 1, ..., a-1]
+
+    # Create a mask to determine the valid elements for each slice A[r:a]
+    mask = arange_matrix >= indices  # True for elements to include
+
+    # Apply the mask to extract elements in parallel and split into slices
+    A_r = torch.masked_select(A.expand(a, a), mask).split(torch.arange(a, 0, -1, device=device).tolist())
+
+    return A_r
+
+def _compute_sliced_tensors_2D(A, dim=0, device=None):
+    """
+    Compute slices of the 2D tensor A along the specified dimension for each index r.
+    Each slice corresponds to A[r:] or A[:,r:] depending on the dimension.
+
+    Args:
+        A (torch.Tensor): Input 2D tensor from which slices are taken.
+        dim (int): Dimension along which to slice (0 for rows, 1 for columns).
+        device (torch.device, optional): Device on which to perform the computation.
+                                         If None, the current device of A is used.
+
+    Returns:
+        list[torch.Tensor]: A list of tensors, where each tensor is the slice A[r:] or A[:,r:].
+    """
+    # Ensure the input is on the correct device
+    if device is None:
+        device = A.device
+    A = A.to(device)
+
+    # Get the size of the slicing dimension
+    size = A.size(dim)
+
+    # Create indices for slicing
+    indices = torch.arange(size, device=device).unsqueeze(1)  # Column vector of r values
+    arange_matrix = torch.arange(size, device=device).unsqueeze(0)  # Row vector [0, 1, ..., size-1]
+
+    # Create a mask to determine valid elements for each slice
+    mask = arange_matrix >= indices  # True for elements to include
+
+    # Expand A along the slicing dimension for parallel processing
+    if dim == 0:  # Slice along rows
+        expanded_A = A.unsqueeze(1).expand(size, size, -1)  # Add an extra dimension
+        selected = torch.masked_select(expanded_A, mask.unsqueeze(-1))  # Apply mask
+        A_r = selected.split(torch.arange(size, 0, -1, device=device).tolist())  # Split the slices
+    elif dim == 1:  # Slice along columns
+        expanded_A = A.unsqueeze(0).expand(size, -1, size)  # Add an extra dimension
+        selected = torch.masked_select(expanded_A, mask.unsqueeze(0))  # Apply mask
+        A_r = selected.split(torch.arange(size, 0, -1, device=device).tolist())  # Split the slices
+    else:
+        raise ValueError("dim must be 0 (rows) or 1 (columns).")
+
+    return A_r
