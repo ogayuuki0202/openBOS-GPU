@@ -7,22 +7,47 @@ from tqdm.contrib import tzip
 def ART_GPU(sinogram: np.ndarray, batch_size: int, device:str,reconstruction_angle : float, eps: float,tolerance:float =1e-24,max_stable_iters:int=1000000):
     """
     Perform Algebraic Reconstruction Technique (ART) on a sinogram using GPU.
-    
-    This function applies ART for tomographic reconstruction by iteratively adjusting 
-    predictions to reduce the residual between predictions and target sinogram values. 
-    The process runs on GPU if available for faster computation.
-    
-    Parameters:
-    sinogram (np.ndarray): Input sinogram with shape [N, Size, Angle].
-    batch_size (int): Number of samples per batch.If you use CPU for the processing,Batchsize=1 is recomennded.
-    device (str) : 'cuda' or 'cpu'
-    eps (float): Tolerance for stopping the iterative process based on residual.
 
-    tolerance (float): The difference threshold for loss change to consider convergence stable.
-    max_stable_iters (int): Maximum number of iterations with stable residuals allowed for convergence.
+    This function implements the ART algorithm for tomographic image reconstruction. 
+    It iteratively refines the predicted reconstruction to minimize the difference 
+    (residual) between the forward projection of the current prediction and the input sinogram.
+    The process can utilize GPU acceleration for efficiency.
+
+    Parameters:
+        sinogram (np.ndarray): 
+            Input sinogram with shape [N, Size, Angle], where:
+            - N: Number of sinogram slices.
+            - Size: Number of detector bins per projection.
+            - Angle: Number of projections (angles).
+            
+        batch_size (int): 
+            Number of slices processed in each batch. A batch size of 1 is recommended 
+            if the CPU is used to avoid excessive memory usage.
+            
+        device (str): 
+            Device for computation, either 'cuda' (for GPU) or 'cpu'.
+            
+        reconstruction_angle (float): 
+            The angle spacing (in degrees) between consecutive projections in the sinogram.
+            
+        eps (float): 
+            Convergence criterion for the iterative process. Iterations stop when the 
+            maximum residual error across all pixels is below this value.
+            
+        tolerance (float): 
+            Threshold for the change in residual error between iterations to consider 
+            the convergence as stable. When the residual change remains below this 
+            threshold for `max_stable_iters` iterations, the process is deemed stable.
+            
+        max_stable_iters (int): 
+            Maximum number of iterations allowed with stable residuals (i.e., change in 
+            residual error below the `tolerance` threshold) before stopping.
 
     Returns:
-    torch.Tensor: Reconstructed image tensor concatenated across all processed batches.
+        torch.Tensor: 
+            A reconstructed image tensor with shape [N, Image_Size, Image_Size], where 
+            N corresponds to the number of input sinogram slices, and Image_Size is the 
+            spatial resolution of the reconstructed image.
     """
 
 
@@ -36,7 +61,8 @@ def ART_GPU(sinogram: np.ndarray, batch_size: int, device:str,reconstruction_ang
     dataloaders_dict = {"target": target_dataloader, "predict": predict_dataloader}
 
     # Initialize the ART model with the input sinogram
-    model = ART_torch(sinogram=sinogram,reconstruction_angle=reconstruction_angle)
+    reconstruction_angle_radian = reconstruction_angle*np.pi/180
+    model = ART_torch(sinogram=sinogram,reconstruction_angle=reconstruction_angle_radian)
 
     # Extract data loaders
     predict_dataloader = dataloaders_dict["predict"]

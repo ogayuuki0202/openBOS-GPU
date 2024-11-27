@@ -27,6 +27,7 @@ class ART_torch(nn.Module):
         self.radon_func = Radon(
             resolution=self.sinogram.shape[1], 
             angles=angles, 
+            det_count=-1, 
             det_spacing=1.0, 
             clip_to_circle=False
         )
