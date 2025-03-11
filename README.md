@@ -46,7 +46,12 @@ or clone using git
 ## Methods
 
 Please see our wiki below.
-[Wiki](https://github.com/ogayuuki0202/openBOS-GPU/wiki)
+
+# Getting Started
+Here's a quick example of using BOSlib for flow visualization:
+
+1.[(GPU)Methods to Calculate the dispalacement of two images](https://colab.research.google.com/drive/1oPZzn1VXiSwaGT-302L5Be8Juimat9bQ?usp=sharing)
+
 
 ## Contributors
 Pleae refer original [openBOS]((https://github.com/ogayuuki0202/openBOS)
